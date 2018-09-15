@@ -60,3 +60,8 @@ typedef struct go_usb
     struct usb_device *usb_dev;
     int go_usb_var;
 } go_usb_t;
+
+static int go_usb_probe(struct usb_interface *interface, const struct usb_device_id *id);
+static void go_usb_disconnect(struct usb_interface *interface);
+static int __init go_usb_init( void );
+static void __exit go_usb_exit( void );
