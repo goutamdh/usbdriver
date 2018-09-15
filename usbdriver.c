@@ -1,4 +1,4 @@
-/* @Module: kernel-test-driver.c  
+/* @Module: usbdriver.c  
  * @Author: Pawan Kumar
  * @Email: jmppawanhit@gmail.com
  * @License: GPL

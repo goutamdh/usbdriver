@@ -1,4 +1,4 @@
-/* @Module: user-test-driver.c  
+/* @Module: usbdriver.h  
  * @Author: Pawan Kumar
  * @Email: jmppawanhit@gmail.com
  * @License: GPL
@@ -7,8 +7,8 @@
  * @Copyright: Copyright (C) 2018 pkmys@github.com
  */
 
-#ifndef _USBDRIVER_h
-#define _USBDRIVER_h
+#ifndef _USBDRIVER_H
+#define _USBDRIVER_H
 #endif
 #ifndef DEBUG
 #define DEBUG
