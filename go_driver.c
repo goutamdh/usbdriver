@@ -139,6 +139,7 @@ static int go_usb_probe(struct usb_interface *interface, const struct usb_device
     return 0;
 
 error:
+    usb_deregister_dev(interface, &go_usb_class);
     usb_put_dev(go_usb_dev->usb_dev);
     DBG_ERR("operation terminated with exit code 0x%x(%d)", retval, retval);
     kfree(go_usb_dev);
@@ -151,6 +152,7 @@ static void go_usb_disconnect(struct usb_interface *interface)
     go_usb_dev = usb_get_intfdata(interface);
 
     usb_set_intfdata(interface, NULL);
+    usb_deregister_dev(interface, &go_usb_class);
     usb_put_dev(go_usb_dev->usb_dev);
 
     dev_info(&interface->dev, "%s %s: detached", go_usb_dev->usb_dev->manufacturer, go_usb_dev->usb_dev->product);
