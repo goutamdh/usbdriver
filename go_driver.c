@@ -26,6 +26,41 @@ static struct usb_device_id go_usb_table[] = {
 };
 MODULE_DEVICE_TABLE(usb, go_usb_table);
 
+ssize_t go_usb_read(struct file *file, char __user *buffer, size_t len, loff_t *offset)
+{
+    DBG_INFO("Read called.");
+    return 0;
+}
+ssize_t go_usb_write(struct file *file, const char __user *buffer, size_t len, loff_t *offset)
+{
+    DBG_INFO("Write called.");
+    return 0;
+}
+int go_usb_open(struct inode *inode, struct file *file)
+{
+    DBG_INFO("Ubs opened");
+    return 0;
+}
+int go_usb_release(struct inode *inode, struct file *file)
+{
+    DBG_INFO("Usb released");
+    return 0;
+}
+
+struct file_operations go_usb_fops = {
+    .owner = THIS_MODULE,
+    .read = go_usb_read,
+    .write = go_usb_write,
+    .open = go_usb_open,
+    .release = go_usb_release,
+};
+
+struct usb_class_driver go_usb_class = {
+    .name = "go_usb%d",
+    .fops = &go_usb_fops,
+    .minor_base = GO_USB_MINOR_BASE,
+};
+
 static int go_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 {
     struct usb_device *usb_dev = interface_to_usbdev(interface);
@@ -88,6 +123,15 @@ static int go_usb_probe(struct usb_interface *interface, const struct usb_device
     }
 
     usb_set_intfdata(interface, go_usb_dev);
+    /* we can register the device now, as it is ready */
+    retval = usb_register_dev(interface, &go_usb_class);
+    if (retval)
+    {
+        /* something prevented us from registering this driver */
+        DBG_ERR("Not able to get a minor for this device.");
+        usb_set_intfdata(interface, NULL);
+        goto error;
+    }
 
     dev_info(&interface->dev, "%s %s:SERIAL %s attached", usb_dev->manufacturer, usb_dev->product, usb_dev->serial);
     DBG_INFO("usb drive (idVendor %04X:idProduct %04X) plugged", id->idVendor, id->idProduct);
@@ -117,7 +161,7 @@ static void go_usb_disconnect(struct usb_interface *interface)
 }
 
 static struct usb_driver go_usb_driver = {
-    .name = "go_usb",
+    .name = "go_usb_driver",
     .probe = go_usb_probe,
     .disconnect = go_usb_disconnect,
     .id_table = go_usb_table,

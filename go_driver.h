@@ -49,7 +49,9 @@
 #define DEBUG_LEVEL_CRITICAL 0x01
 
 #define USB_VENDOR_ID 0x0781
-#define USB_PRODUCT_ID 0x558a
+#define USB_PRODUCT_ID 0x558A
+
+#define GO_USB_MINOR_BASE 0xC0
 
 #define DEVICE_NAME "go_usb"
 #define MOD_AUTHOR "Pawan Kumar <jmppawanhit@gmail.com>"
