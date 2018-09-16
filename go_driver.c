@@ -38,7 +38,7 @@ ssize_t go_usb_write(struct file *file, const char __user *buffer, size_t len, l
 }
 int go_usb_open(struct inode *inode, struct file *file)
 {
-    DBG_INFO("Ubs opened");
+    DBG_INFO("Usb opened");
     return 0;
 }
 int go_usb_release(struct inode *inode, struct file *file)
@@ -87,7 +87,7 @@ static int go_usb_probe(struct usb_interface *interface, const struct usb_device
     for (i = 0; i < iface_desc->desc.bNumEndpoints; ++i)
     {
         endpt = &iface_desc->endpoint[i].desc;
-        DBG_DEBUG("find endpoint: 0x%x, size: %d\n", endpt->bEndpointAddress, endpt->wMaxPacketSize);
+        DBG_DEBUG("find endpoint: 0x%x, size: %d", endpt->bEndpointAddress, endpt->wMaxPacketSize);
 
         if (!go_usb_dev->bulk_in_endpointAddr &&
             (endpt->bEndpointAddress & USB_DIR_IN) &&
@@ -103,7 +103,7 @@ static int go_usb_probe(struct usb_interface *interface, const struct usb_device
                 DBG_ERR("Could not allocate bulk_in_buffer");
                 goto error;
             }
-            DBG_INFO("found bulk in addr: 0x%x, size: %d\n", go_usb_dev->bulk_in_endpointAddr, go_usb_dev->bulk_in_size);
+            DBG_INFO("found bulk in addr: 0x%x, size: %d", go_usb_dev->bulk_in_endpointAddr, go_usb_dev->bulk_in_size);
         }
 
         if (!go_usb_dev->bulk_out_endpointAddr &&
@@ -112,7 +112,7 @@ static int go_usb_probe(struct usb_interface *interface, const struct usb_device
         {
             /* we found a bulk out endpoint */
             go_usb_dev->bulk_out_endpointAddr = endpt->bEndpointAddress;
-            DBG_INFO("found bulk out addr: 0x%x, size: %d\n", go_usb_dev->bulk_in_endpointAddr, go_usb_dev->bulk_in_size);
+            DBG_INFO("found bulk out addr: 0x%x, size: %d", go_usb_dev->bulk_in_endpointAddr, go_usb_dev->bulk_in_size);
         }
     }
     if (!(go_usb_dev->bulk_in_endpointAddr && go_usb_dev->bulk_out_endpointAddr))
