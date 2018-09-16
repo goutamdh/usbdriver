@@ -53,13 +53,13 @@ static void go_usb_disconnect(struct usb_interface *interface)
     go_usb_dev = usb_get_intfdata(interface);
 
     usb_set_intfdata(interface, NULL);
-
     usb_put_dev(go_usb_dev->usb_dev);
+    
+    dev_info(&interface->dev, "%s %s: detached", go_usb_dev->usb_dev->manufacturer, go_usb_dev->usb_dev->product);
+    
     kfree(go_usb_dev);
 
-    dev_info(&interface->dev, "%s %s: detached", go_usb_dev->usb_dev->manufacturer, go_usb_dev->usb_dev->product);
-
-    DBG_INFO("usb drive removed");
+    DBG_INFO("usb device removed");
 }
 
 static struct usb_driver go_usb_driver = {
