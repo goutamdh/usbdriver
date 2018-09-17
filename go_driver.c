@@ -34,7 +34,7 @@ ssize_t go_usb_read(struct file *file, char __user *buffer, size_t len, loff_t *
 ssize_t go_usb_write(struct file *file, const char __user *buffer, size_t len, loff_t *offset)
 {
     DBG_INFO("Write called.");
-    return 0;
+    return len;
 }
 int go_usb_open(struct inode *inode, struct file *file)
 {
@@ -112,7 +112,7 @@ static int go_usb_probe(struct usb_interface *interface, const struct usb_device
         {
             /* we found a bulk out endpoint */
             go_usb_dev->bulk_out_endpointAddr = endpt->bEndpointAddress;
-            DBG_INFO("found bulk out addr: 0x%x, size: %d", go_usb_dev->bulk_in_endpointAddr, go_usb_dev->bulk_in_size);
+            DBG_INFO("found bulk out addr: 0x%x, size: %d", go_usb_dev->bulk_out_endpointAddr, go_usb_dev->bulk_in_size);
         }
     }
     if (!(go_usb_dev->bulk_in_endpointAddr && go_usb_dev->bulk_out_endpointAddr))
