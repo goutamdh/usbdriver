@@ -6,6 +6,10 @@
  * @Description: 
  * @Copyright: Copyright (C) 2018 pkmys@github.com
  */
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/slab.h>
 
 #include "go_driver.h"
 
@@ -17,6 +21,8 @@ static int debug_level = 0;
 
 module_param(debug_level, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(debug_level, "debug level bitmask CRITICAL=1 ERROR=3 WARN=7 INFO=15 DEBUG=31");
+
+
 
 /* table of devices that work with this driver */
 static struct usb_device_id go_usb_table[] = {
@@ -38,13 +44,80 @@ ssize_t go_usb_write(struct file *file, const char __user *buffer, size_t len, l
 }
 int go_usb_open(struct inode *inode, struct file *file)
 {
-    DBG_INFO("Usb opened");
-    return 0;
+    struct go_usb *go_usb_dev;
+    struct usb_interface *interface;
+    int retval = 0;
+    int subminor;
+
+    subminor = iminor(inode);
+
+    interface = usb_find_interface(&go_usb_driver, subminor);
+    if (!interface) 
+    {
+        DBG_ERR("Error, can't find device for minor %d", subminor);
+        retval = -ENODEV;
+        goto error;
+    }
+
+    go_usb_dev = usb_get_intfdata(interface);
+    if(!go_usb_dev)
+    {
+        DBG_ERR("Unable to get data from interface");
+        retval = -ENODEV;
+        goto error;
+    }
+
+    retval = mutex_trylock(&go_usb_dev->io_mutex);
+    if(retval) retval = 0;
+    else
+    {
+        DBG_WARN("Already opened by other process, try again later");
+        retval = EBUSY;
+        goto error;
+    }
+
+    DBG_DEBUG("Openening some file");
+    return retval;
+error:
+    DBG_ERR("operation terminated with exit code 0x%x(%d)", retval, retval);
+    return retval;
 }
 int go_usb_release(struct inode *inode, struct file *file)
 {
-    DBG_INFO("Usb released");
-    return 0;
+    struct go_usb *go_usb_dev;
+    struct usb_interface *interface;
+    int retval = 0;
+    int subminor;
+
+    subminor = iminor(inode);
+
+    interface = usb_find_interface(&go_usb_driver, subminor);
+    if (!interface) 
+    {
+        DBG_ERR("Error, can't find device for minor %d", subminor);
+        retval = -ENODEV;
+        goto error;
+    }
+
+    go_usb_dev = usb_get_intfdata(interface);
+    if(!go_usb_dev)
+    {
+        DBG_ERR("Unable to get data from interface");
+        retval = -ENODEV;
+        goto error;
+    }
+
+    DBG_DEBUG("Closing some file");
+
+    mutex_unlock(&go_usb_dev->io_mutex);
+
+    return retval;
+error:
+    DBG_ERR("operation terminated with exit code 0x%x(%d)", retval, retval);
+
+    mutex_unlock(&go_usb_dev->io_mutex);
+
+    return retval;
 }
 
 struct file_operations go_usb_fops = {
@@ -66,7 +139,7 @@ static int go_usb_probe(struct usb_interface *interface, const struct usb_device
     struct usb_device *usb_dev = interface_to_usbdev(interface);
     struct usb_host_interface *iface_desc;
     struct usb_endpoint_descriptor *endpt;
-    go_usb_t *go_usb_dev;
+    struct go_usb *go_usb_dev;
     __u16 buffer_size;
     int retval = -ENOMEM;
     int i;
@@ -74,9 +147,11 @@ static int go_usb_probe(struct usb_interface *interface, const struct usb_device
     go_usb_dev = kzalloc(sizeof(*go_usb_dev), GFP_KERNEL);
     if (go_usb_dev == NULL)
     {
-        DBG_CRIT("unable to allocate memory for %s %s", usb_dev->manufacturer, usb_dev->product);
+        DBG_CRIT("Unable to allocate memory for %s %s", usb_dev->manufacturer, usb_dev->product);
         return retval;
     }
+
+    mutex_init(&go_usb_dev->io_mutex);
 
     go_usb_dev->usb_dev = usb_get_dev(usb_dev);
     go_usb_dev->interface = interface;
@@ -87,7 +162,7 @@ static int go_usb_probe(struct usb_interface *interface, const struct usb_device
     for (i = 0; i < iface_desc->desc.bNumEndpoints; ++i)
     {
         endpt = &iface_desc->endpoint[i].desc;
-        DBG_DEBUG("find endpoint: 0x%x, size: %d", endpt->bEndpointAddress, endpt->wMaxPacketSize);
+        DBG_DEBUG("Find endpoint: 0x%x, size: %d", endpt->bEndpointAddress, endpt->wMaxPacketSize);
 
         if (!go_usb_dev->bulk_in_endpointAddr &&
             (endpt->bEndpointAddress & USB_DIR_IN) &&
@@ -103,7 +178,7 @@ static int go_usb_probe(struct usb_interface *interface, const struct usb_device
                 DBG_ERR("Could not allocate bulk_in_buffer");
                 goto error;
             }
-            DBG_INFO("found bulk in addr: 0x%x, size: %d", go_usb_dev->bulk_in_endpointAddr, go_usb_dev->bulk_in_size);
+            DBG_INFO("Found bulk in addr: 0x%x, size: %d", go_usb_dev->bulk_in_endpointAddr, go_usb_dev->bulk_in_size);
         }
 
         if (!go_usb_dev->bulk_out_endpointAddr &&
@@ -112,7 +187,7 @@ static int go_usb_probe(struct usb_interface *interface, const struct usb_device
         {
             /* we found a bulk out endpoint */
             go_usb_dev->bulk_out_endpointAddr = endpt->bEndpointAddress;
-            DBG_INFO("found bulk out addr: 0x%x, size: %d", go_usb_dev->bulk_out_endpointAddr, go_usb_dev->bulk_in_size);
+            DBG_INFO("Found bulk out addr: 0x%x, size: %d", go_usb_dev->bulk_out_endpointAddr, go_usb_dev->bulk_in_size);
         }
     }
     if (!(go_usb_dev->bulk_in_endpointAddr && go_usb_dev->bulk_out_endpointAddr))
@@ -133,8 +208,8 @@ static int go_usb_probe(struct usb_interface *interface, const struct usb_device
         goto error;
     }
 
-    dev_info(&interface->dev, "%s %s:SERIAL %s attached", usb_dev->manufacturer, usb_dev->product, usb_dev->serial);
-    DBG_INFO("usb drive (idVendor %04X:idProduct %04X) plugged", id->idVendor, id->idProduct);
+    dev_info(&interface->dev, "USB device #%d plugged, manufacturer: %s product: %s", interface->minor, usb_dev->manufacturer, usb_dev->product);
+    DBG_INFO("Usb drive (idVendor %04X:idProduct %04X) plugged", id->idVendor, id->idProduct);
 
     return 0;
 
@@ -148,18 +223,22 @@ error:
 
 static void go_usb_disconnect(struct usb_interface *interface)
 {
-    go_usb_t *go_usb_dev;
+    struct go_usb *go_usb_dev;
+    int subminor = interface->minor;
+
     go_usb_dev = usb_get_intfdata(interface);
+
+    mutex_lock(&go_usb_dev->io_mutex);
 
     usb_set_intfdata(interface, NULL);
     usb_deregister_dev(interface, &go_usb_class);
     usb_put_dev(go_usb_dev->usb_dev);
 
-    dev_info(&interface->dev, "%s %s: detached", go_usb_dev->usb_dev->manufacturer, go_usb_dev->usb_dev->product);
-
+    dev_info(&interface->dev, "USB device #%d diconnected, manufacturer: %s product: %s", subminor, go_usb_dev->usb_dev->manufacturer, go_usb_dev->usb_dev->product);
+    mutex_unlock(&go_usb_dev->io_mutex);
     kfree(go_usb_dev);
 
-    DBG_INFO("usb device removed");
+    DBG_INFO("usb device #%d removed", subminor);
 }
 
 static struct usb_driver go_usb_driver = {

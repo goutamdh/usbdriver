@@ -14,12 +14,10 @@
 /******************************************
  *               includes                 *
  ******************************************/
-#include <linux/module.h>
-#include <linux/kernel.h>
 #include <linux/errno.h>
-#include <linux/init.h>
+#include <linux/mutex.h>
 #include <linux/usb.h>
-#include <linux/slab.h>
+
 
 #define DBG_DEBUG(fmt, args...)                                 \
     if ((debug_level & DEBUG_LEVEL_DEBUG) == DEBUG_LEVEL_DEBUG) \
@@ -43,34 +41,36 @@
            __FUNCTION__, __LINE__, ##args)
 
 #define DEBUG
-#define DEBUG_LEVEL_DEBUG 0x1F
-#define DEBUG_LEVEL_INFO 0x0F
-#define DEBUG_LEVEL_WARN 0x07
-#define DEBUG_LEVEL_ERROR 0x03
-#define DEBUG_LEVEL_CRITICAL 0x01
+#define DEBUG_LEVEL_DEBUG       0x1F
+#define DEBUG_LEVEL_INFO        0x0F
+#define DEBUG_LEVEL_WARN        0x07
+#define DEBUG_LEVEL_ERROR       0x03
+#define DEBUG_LEVEL_CRITICAL    0x01
 
-#define USB_VENDOR_ID 0x0781
-#define USB_PRODUCT_ID 0x558A
+#define USB_VENDOR_ID           0x0781
+#define USB_PRODUCT_ID          0x558A
 
-#define GO_USB_MINOR_BASE 0xC0
+#define GO_USB_MINOR_BASE       0xC0
 
-#define DEVICE_NAME "go_usb"
-#define MOD_AUTHOR "Pawan Kumar <jmppawanhit@gmail.com>"
-#define MOD_DESC "go_usb driver"
-#define MOD_SUPPORT "usb device"
+#define DEVICE_NAME             "go_usb"
+#define MOD_AUTHOR              "Pawan Kumar <jmppawanhit@gmail.com>"
+#define MOD_DESC                "go_usb driver"
+#define MOD_SUPPORT             "usb device"
 
-typedef struct go_usb
+struct go_usb
 {
-    struct usb_device *usb_dev;
-    struct usb_interface *interface;
-    __u8 *bulk_in_buffer;
-    __u8 bulk_in_endpointAddr;
-    __u8 bulk_out_endpointAddr;
-    __u16 bulk_in_size;
-    __u8 open_count;
-} go_usb_t;
+    struct usb_device            *usb_dev;
+    struct usb_interface         *interface;
+    __u8                         *bulk_in_buffer;
+    __u8                          bulk_in_endpointAddr;
+    __u8                          bulk_out_endpointAddr;
+    __u16                         bulk_in_size;
+    __u8                          open_count;
+    struct mutex		          io_mutex;
+};
 
 static int go_usb_probe(struct usb_interface *interface, const struct usb_device_id *id);
 static void go_usb_disconnect(struct usb_interface *interface);
 static int __init go_usb_init(void);
 static void __exit go_usb_exit(void);
+static struct usb_driver go_usb_driver;
