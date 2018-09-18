@@ -72,7 +72,7 @@ int go_usb_open(struct inode *inode, struct file *file)
     else
     {
         DBG_WARN("Already opened by other process, try again later");
-        retval = EBUSY;
+        retval = -EBUSY;
         goto error;
     }
 
