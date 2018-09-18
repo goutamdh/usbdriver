@@ -21,23 +21,23 @@
 
 #define DBG_DEBUG(fmt, args...)                                 \
     if ((debug_level & DEBUG_LEVEL_DEBUG) == DEBUG_LEVEL_DEBUG) \
-    printk(KERN_DEBUG "[debg] %s(%d): " fmt "\n",               \
+    printk(KERN_DEBUG "%s l%d:\t[debg] " fmt "\n",               \
            __FUNCTION__, __LINE__, ##args)
 #define DBG_INFO(fmt, args...)                                \
     if ((debug_level & DEBUG_LEVEL_INFO) == DEBUG_LEVEL_INFO) \
-    printk(KERN_INFO "[info]  %s(%d): " fmt "\n",             \
+    printk(KERN_INFO "%s l%d:\t[info] " fmt "\n",             \
            __FUNCTION__, __LINE__, ##args)
 #define DBG_WARN(fmt, args...)                                \
     if ((debug_level & DEBUG_LEVEL_WARN) == DEBUG_LEVEL_WARN) \
-    printk(KERN_WARNING "[warn]  %s(%d): " fmt "\n",          \
+    printk(KERN_WARNING "%s l%d:\t[warn] " fmt "\n",          \
            __FUNCTION__, __LINE__, ##args)
 #define DBG_ERR(fmt, args...)                                   \
     if ((debug_level & DEBUG_LEVEL_ERROR) == DEBUG_LEVEL_ERROR) \
-    printk(KERN_ERR "[eror]   %s(%d): " fmt "\n",               \
+    printk(KERN_ERR "%s l%d:\t[eror] " fmt "\n",               \
            __FUNCTION__, __LINE__, ##args)
 #define DBG_CRIT(fmt, args...)                                        \
     if ((debug_level & DEBUG_LEVEL_CRITICAL) == DEBUG_LEVEL_CRITICAL) \
-    printk(KERN_CRIT "[crit]  %s(%d): " fmt "\n",                     \
+    printk(KERN_CRIT "%s l%d:\t[crit] " fmt "\n",                     \
            __FUNCTION__, __LINE__, ##args)
 
 #define DEBUG
