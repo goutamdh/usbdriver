@@ -39,8 +39,26 @@ ssize_t go_usb_read(struct file *file, char __user *buffer, size_t len, loff_t *
 }
 ssize_t go_usb_write(struct file *file, const char __user *buffer, size_t len, loff_t *offset)
 {
+    struct go_usb *go_usb_dev;
+    int retval;
+
+    go_usb_dev = file->private_data;
+
+    retval = mutex_trylock(&go_usb_dev->io_mutex);
+    if(retval) retval = 0;
+    else
+    {
+        DBG_WARN("can't write resource busy, try again later");
+        retval = -EBUSY;
+        goto error;
+    }
     DBG_INFO("Write called.");
+    mutex_unlock(&go_usb_dev->io_mutex);
     return len;
+
+error:
+    DBG_WARN("operation returned 0x%x(%d)", retval, retval);
+    return retval;
 }
 int go_usb_open(struct inode *inode, struct file *file)
 {
@@ -77,13 +95,25 @@ int go_usb_open(struct inode *inode, struct file *file)
         retval = -EBUSY;
         goto error;
     }
+    if (!go_usb_dev->open_count) 
+    {
+        go_usb_dev->open_count++;
+		retval = usb_autopm_get_interface(interface);
+        if (retval) 
+        {
+            mutex_unlock(&go_usb_dev->io_mutex);
+            goto error;
+        }
+    }
 
     DBG_DEBUG("Openening some file");
+    mutex_unlock(&go_usb_dev->io_mutex);
     return retval;
 error:
     DBG_ERR("operation terminated with exit code 0x%x(%d)", retval, retval);
     return retval;
 }
+
 int go_usb_release(struct inode *inode, struct file *file)
 {
     struct go_usb *go_usb_dev;
@@ -91,15 +121,12 @@ int go_usb_release(struct inode *inode, struct file *file)
 
     go_usb_dev = file->private_data;
 
+    if (!go_usb_dev->open_count && go_usb_dev->interface)
+    {
+        go_usb_dev->open_count--;
+        usb_autopm_put_interface(go_usb_dev->interface);
+    }
     DBG_DEBUG("Closing some file");
-
-    mutex_unlock(&go_usb_dev->io_mutex);
-
-    return retval;
-error:
-    DBG_ERR("operation terminated with exit code 0x%x(%d)", retval, retval);
-
-    mutex_unlock(&go_usb_dev->io_mutex);
 
     return retval;
 }

@@ -61,12 +61,12 @@ struct go_usb
 {
     struct usb_device            *usb_dev;
     struct usb_interface         *interface;
+    struct mutex		          io_mutex;
     __u8                         *bulk_in_buffer;
     __u8                          bulk_in_endpointAddr;
     __u8                          bulk_out_endpointAddr;
     __u16                         bulk_in_size;
-    __u8                          open_count;
-    struct mutex		          io_mutex;
+    __u16                          open_count;
 };
 
 static int go_usb_probe(struct usb_interface *interface, const struct usb_device_id *id);
