@@ -67,6 +67,8 @@ int go_usb_open(struct inode *inode, struct file *file)
         goto error;
     }
 
+    file->private_data = go_usb_dev;
+
     retval = mutex_trylock(&go_usb_dev->io_mutex);
     if(retval) retval = 0;
     else
@@ -85,27 +87,9 @@ error:
 int go_usb_release(struct inode *inode, struct file *file)
 {
     struct go_usb *go_usb_dev;
-    struct usb_interface *interface;
     int retval = 0;
-    int subminor;
 
-    subminor = iminor(inode);
-
-    interface = usb_find_interface(&go_usb_driver, subminor);
-    if (!interface) 
-    {
-        DBG_ERR("Error, can't find device for minor %d", subminor);
-        retval = -ENODEV;
-        goto error;
-    }
-
-    go_usb_dev = usb_get_intfdata(interface);
-    if(!go_usb_dev)
-    {
-        DBG_ERR("Unable to get data from interface");
-        retval = -ENODEV;
-        goto error;
-    }
+    go_usb_dev = file->private_data;
 
     DBG_DEBUG("Closing some file");
 
@@ -228,14 +212,12 @@ static void go_usb_disconnect(struct usb_interface *interface)
 
     go_usb_dev = usb_get_intfdata(interface);
 
-    mutex_lock(&go_usb_dev->io_mutex);
-
     usb_set_intfdata(interface, NULL);
     usb_deregister_dev(interface, &go_usb_class);
     usb_put_dev(go_usb_dev->usb_dev);
 
     dev_info(&interface->dev, "USB device #%d diconnected, manufacturer: %s product: %s", subminor, go_usb_dev->usb_dev->manufacturer, go_usb_dev->usb_dev->product);
-    mutex_unlock(&go_usb_dev->io_mutex);
+
     kfree(go_usb_dev);
 
     DBG_INFO("usb device #%d removed", subminor);
